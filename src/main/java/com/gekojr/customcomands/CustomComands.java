@@ -28,8 +28,8 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equalsIgnoreCase("discord")) {
             Component discordMessage = Component.text()
-                .append(Component.text("DISCORD", NamedTextColor.AQUA, TextDecoration.BOLD))
-                .append(Component.text(" » ", NamedTextColor.DARK_GRAY))
+                .append(Component.text("DISCORD", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD))
+                .append(Component.text(" » ", NamedTextColor.DARK_PURPLE))
                 .append(Component.text(DISCORD, NamedTextColor.WHITE))
                 .build();
 
