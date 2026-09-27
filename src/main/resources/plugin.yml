@@ -12,6 +12,9 @@ commands:
     description: Sends an announcement to the entire server
     usage: /annuncio <message>
     permission: customcomands.annuncio
+  trade:
+    description: Trade items with another player
+    usage: /trade <player> | /trade accept | /trade deny
 
 permissions:
   customcomands.discord:
