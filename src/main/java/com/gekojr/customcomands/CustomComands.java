@@ -16,12 +16,12 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor {
     public void onEnable() {
         getCommand("discord").setExecutor(this);
         getCommand("annuncio").setExecutor(this);
-        getLogger().info("CustomComands attivo.");
+        getLogger().info("CustomComands enabled.");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("CustomComands disattivato.");
+        getLogger().info("CustomComands disabled.");
     }
 
     @Override
@@ -39,19 +39,19 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor {
 
         if (command.getName().equalsIgnoreCase("annuncio")) {
             if (!sender.hasPermission("customcomands.annuncio")) {
-                sender.sendMessage(Component.text("Non hai il permesso per usare questo comando.", NamedTextColor.RED));
+                sender.sendMessage(Component.text("You do not have permission to use this command.", NamedTextColor.RED));
                 return true;
             }
 
             if (args.length == 0) {
-                sender.sendMessage(Component.text("Uso: /annuncio <messaggio>", NamedTextColor.RED));
+                sender.sendMessage(Component.text("Usage: /annuncio <message>", NamedTextColor.RED));
                 return true;
             }
 
             String message = String.join(" ", args);
 
             Component announcement = Component.text()
-                .append(Component.text("ANNUNCIO", NamedTextColor.GOLD, TextDecoration.BOLD))
+                .append(Component.text("ANNOUNCEMENT", NamedTextColor.GOLD, TextDecoration.BOLD))
                 .append(Component.text(" » ", NamedTextColor.DARK_GRAY))
                 .append(Component.text(message, NamedTextColor.WHITE))
                 .build();
