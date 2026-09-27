@@ -1,8 +1,8 @@
 # Custom-Comands
 
-Plugin Paper per i comandi personalizzati del server.
+Paper plugin for custom server commands.
 
-## Comandi
+## Commands
 
-- `/discord` — mostra privatamente il link Discord.
-- `/annuncio <messaggio>` — invia un annuncio a tutto il server; utilizzabile dagli admin e dalla console.
+- `/discord` — privately shows the Discord server link.
+- `/annuncio <message>` — sends an announcement to the entire server; available to admins and the console.
