@@ -5,18 +5,18 @@ api-version: '1.21'
 
 commands:
   discord:
-    description: Mostra il link del server Discord
+    description: Shows the server Discord link
     usage: /discord
     permission: customcomands.discord
   annuncio:
-    description: Invia un annuncio a tutto il server
-    usage: /annuncio <messaggio>
+    description: Sends an announcement to the entire server
+    usage: /annuncio <message>
     permission: customcomands.annuncio
 
 permissions:
   customcomands.discord:
-    description: Permette di usare /discord
+    description: Allows the use of /discord
     default: true
   customcomands.annuncio:
-    description: Permette di usare /annuncio
+    description: Allows the use of /annuncio
     default: op
