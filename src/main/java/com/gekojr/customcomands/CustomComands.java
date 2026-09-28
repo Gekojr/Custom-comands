@@ -25,6 +25,7 @@ import java.util.UUID;
 public final class CustomComands extends JavaPlugin implements CommandExecutor, Listener {
 
     private static final String DISCORD = "https://discord.gg/mZRyBRzSA3";
+    private static final double TRADE_RANGE = 10.0;
 
     private final Map<UUID, TradeRequest> requests = new HashMap<>();
     private final Map<UUID, TradeSession> activeTrades = new HashMap<>();
@@ -111,6 +112,12 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
                     return true;
                 }
 
+                if (!player.getWorld().equals(target.getWorld())
+                        || player.getLocation().distanceSquared(target.getLocation()) > TRADE_RANGE * TRADE_RANGE) {
+                    player.sendMessage(Component.text("You must be within 10 blocks of that player to trade.", NamedTextColor.RED));
+                    return true;
+                }
+
                 if (activeTrades.containsKey(player.getUniqueId()) || activeTrades.containsKey(target.getUniqueId())) {
                     player.sendMessage(Component.text("One of you is already in a trade.", NamedTextColor.RED));
                     return true;
@@ -154,7 +161,7 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
     }
 
     private boolean acceptTrade(Player target) {
-        TradeRequest request = requests.remove(target.getUniqueId());
+        TradeRequest request = requests.get(target.getUniqueId());
 
         if (request == null) {
             target.sendMessage(Component.text("You have no pending trade request.", NamedTextColor.RED));
@@ -163,9 +170,20 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
 
         Player requester = Bukkit.getPlayer(request.requester);
         if (requester == null || !requester.isOnline()) {
+            requests.remove(target.getUniqueId());
             target.sendMessage(Component.text("The player who sent the request is no longer online.", NamedTextColor.RED));
             return true;
         }
+
+        if (!requester.getWorld().equals(target.getWorld())
+                || requester.getLocation().distanceSquared(target.getLocation()) > TRADE_RANGE * TRADE_RANGE) {
+            requests.remove(target.getUniqueId());
+            target.sendMessage(Component.text("You must be within 10 blocks of the other player to accept the trade.", NamedTextColor.RED));
+            requester.sendMessage(Component.text("The trade request was cancelled because you are no longer within 10 blocks.", NamedTextColor.RED));
+            return true;
+        }
+
+        requests.remove(target.getUniqueId());
 
         if (activeTrades.containsKey(requester.getUniqueId()) || activeTrades.containsKey(target.getUniqueId())) {
             target.sendMessage(Component.text("One of you is already in a trade.", NamedTextColor.RED));
@@ -249,12 +267,7 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
 
         event.setCancelled(true);
 
-        if (rawSlot == 11) {
-            session.confirm(player);
-            return;
-        }
-
-        if (rawSlot == 15) {
+        if (rawSlot == 11 || rawSlot == 15) {
             session.confirm(player);
             return;
         }
