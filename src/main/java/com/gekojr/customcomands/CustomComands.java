@@ -272,7 +272,7 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
             return;
         }
 
-        if (rawSlot == 22) {
+        if (rawSlot == 13) {
             cancelTrade(session, "Trade cancelled.");
             return;
         }
@@ -329,7 +329,7 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
 
             inventory.setItem(11, createGlass(Material.LIME_STAINED_GLASS_PANE, "Confirm Trade"));
             inventory.setItem(15, createGlass(Material.LIME_STAINED_GLASS_PANE, "Confirm Trade"));
-            inventory.setItem(22, createGlass(Material.RED_STAINED_GLASS_PANE, "Cancel Trade"));
+            inventory.setItem(13, createGlass(Material.RED_STAINED_GLASS_PANE, "Cancel Trade"));
         }
 
         private ItemStack createGlass(Material material, String name) {
