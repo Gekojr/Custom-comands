@@ -10,6 +10,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -217,12 +219,15 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
     }
 
     private void cancelTrade(TradeSession session, String message) {
+        if (!session.isActive()) return;
+        session.closing = true;
         activeTrades.remove(session.first.getUniqueId());
         activeTrades.remove(session.second.getUniqueId());
 
         returnItems(session.inventory, 0, 9, session.first);
         returnItems(session.inventory, 18, 27, session.second);
 
+        session.clearControls();
         session.first.closeInventory();
         session.second.closeInventory();
 
@@ -245,44 +250,49 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
 
     @EventHandler
     public void onTradeClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!(event.getView().getTopInventory().getHolder() instanceof TradeHolder holder)) return;
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof TradeHolder holder)) {
-            return;
-        }
-
+        // Cancel before checking the clicked inventory: double-click collection from
+        // the player inventory can otherwise pick up the menu's glass buttons.
+        event.setCancelled(true);
         TradeSession session = holder.session;
-        if (!activeTrades.containsKey(player.getUniqueId()) || activeTrades.get(player.getUniqueId()) != session) {
-            event.setCancelled(true);
-            return;
-        }
+        if (activeTrades.get(player.getUniqueId()) != session || session.closing) return;
+        if (event.getClick() != ClickType.LEFT && event.getClick() != ClickType.RIGHT) return;
 
         int rawSlot = event.getRawSlot();
-
-        if (rawSlot >= event.getView().getTopInventory().getSize()) {
-            return;
-        }
-
-        event.setCancelled(true);
-
         if (rawSlot == 11 || rawSlot == 15) {
             session.confirm(player);
             return;
         }
-
         if (rawSlot == 13) {
-            cancelTrade(session, "Trade cancelled.");
+            session.closing = true;
+            // Paper inventory-click handlers must finish before closing a menu.
+            Bukkit.getScheduler().runTask(this, () -> cancelTrade(session, "Trade cancelled."));
             return;
         }
 
-        boolean firstSide = rawSlot >= 0 && rawSlot <= 8;
-        boolean secondSide = rawSlot >= 18 && rawSlot <= 26;
+        boolean ordinaryAction = switch (event.getAction()) {
+            case NOTHING, PICKUP_ALL, PICKUP_HALF, PICKUP_ONE, PICKUP_SOME,
+                    PLACE_ALL, PLACE_ONE, PLACE_SOME, SWAP_WITH_CURSOR -> true;
+            default -> false;
+        };
+        if (!ordinaryAction) return;
 
-        if ((player.equals(session.first) && firstSide) || (player.equals(session.second) && secondSide)) {
-            event.setCancelled(false);
+        boolean ownOffer = player.equals(session.first) ? rawSlot >= 0 && rawSlot < 9
+                : rawSlot >= 18 && rawSlot < 27;
+        boolean ownInventory = rawSlot >= event.getView().getTopInventory().getSize()
+                && rawSlot < event.getView().countSlots();
+        if (ownOffer || ownInventory) {
             session.resetConfirmation();
+            event.setCancelled(false);
+        }
+    }
+
+    @EventHandler
+    public void onTradeDrag(InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof TradeHolder) {
+            event.setCancelled(true);
         }
     }
 
@@ -297,12 +307,11 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
         }
 
         TradeSession session = holder.session;
-        if (!activeTrades.containsKey(player.getUniqueId())) {
-            return;
-        }
+        if (activeTrades.get(player.getUniqueId()) != session) return;
+        session.closing = true;
 
         Bukkit.getScheduler().runTask(this, () -> {
-            if (activeTrades.containsKey(player.getUniqueId())) {
+            if (activeTrades.get(player.getUniqueId()) == session) {
                 cancelTrade(session, "Trade cancelled because a player closed the trade.");
             }
         });
@@ -314,6 +323,7 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
         private final Inventory inventory;
         private boolean firstConfirmed;
         private boolean secondConfirmed;
+        private boolean closing;
 
         private TradeSession(Player first, Player second) {
             this.first = first;
@@ -346,6 +356,15 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
             second.sendMessage(Component.text("Trade started with " + first.getName() + ".", NamedTextColor.GREEN));
         }
 
+        private boolean isActive() {
+            return activeTrades.get(first.getUniqueId()) == this
+                    && activeTrades.get(second.getUniqueId()) == this;
+        }
+
+        private void clearControls() {
+            for (int slot = 9; slot < 18; slot++) inventory.setItem(slot, null);
+        }
+
         private void resetConfirmation() {
             firstConfirmed = false;
             secondConfirmed = false;
@@ -359,13 +378,17 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
             }
 
             if (firstConfirmed && secondConfirmed) {
-                complete();
+                Bukkit.getScheduler().runTask(CustomComands.this, () -> {
+                    if (isActive() && !closing && firstConfirmed && secondConfirmed) complete();
+                });
             } else {
                 player.sendMessage(Component.text("You confirmed the trade. Waiting for the other player.", NamedTextColor.YELLOW));
             }
         }
 
         private void complete() {
+            if (!isActive()) return;
+            closing = true;
             activeTrades.remove(first.getUniqueId());
             activeTrades.remove(second.getUniqueId());
 
@@ -385,6 +408,7 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
                 }
             }
 
+            clearControls();
             first.closeInventory();
             second.closeInventory();
 
@@ -421,3 +445,4 @@ public final class CustomComands extends JavaPlugin implements CommandExecutor, 
         }
     }
 }
+
